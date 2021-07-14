@@ -15,20 +15,17 @@ import java.util.stream.Collectors;
 @RequestMapping("/posts")
 public class PostController {
 
-    PostService postService;
-    VoteService voteService;
-    GroupService groupService;
-    UserService userService;
-    TopicService topicService;
+    private final PostService postService;
+    private final VoteService voteService;
+    private final UserService userService;
+    private final TopicService topicService;
 
     public PostController(PostService postService,
                           VoteService voteService,
-                          GroupService groupService,
                           UserService userService,
                           TopicService topicService) {
         this.voteService = voteService;
         this.postService = postService;
-        this.groupService = groupService;
         this.userService = userService;
         this.topicService = topicService;
     }
