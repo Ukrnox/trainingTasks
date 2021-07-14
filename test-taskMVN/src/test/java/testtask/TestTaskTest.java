@@ -1,8 +1,8 @@
 package testtask;
 
-import org.junit.Test;
-
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import testtask.model.Account;
 import testtask.model.Sex;
 
@@ -14,7 +14,7 @@ import java.util.*;
 public class TestTaskTest
 {
 
-    private static Collection<Account> accounts = new LinkedList<>();
+    private static Collection<Account> accounts = new ArrayList<>();
     private static Account account1;
     private static Account account2;
     private static Account account3;
@@ -22,7 +22,8 @@ public class TestTaskTest
     private static Account account5;
     private static Account account6;
 
-    static
+    @BeforeAll
+    static void setUp()
     {
         account1 = new Account(1L, "TestName1", "TestLastName1", "test1@gmail.com",
                 LocalDate.of(1999, Month.JANUARY, 1), Sex.MALE, LocalDate.now(), new BigDecimal(100));
@@ -94,8 +95,8 @@ public class TestTaskTest
         gmail.add(account2);
         gmail.add(account5);
         gmail.add(account6);
-        expected.put("@ukr.net", ukr);
-        expected.put("@gmail.com", gmail);
+        expected.put("ukr.net", ukr);
+        expected.put("gmail.com", gmail);
         Map<String, List<Account>> groupAccountsByEmailDomain = testTask.groupAccountsByEmailDomain();
         Assertions.assertEquals(expected, groupAccountsByEmailDomain);
     }

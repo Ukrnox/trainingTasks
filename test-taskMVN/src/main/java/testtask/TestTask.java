@@ -5,7 +5,6 @@ import testtask.model.Account;
 import testtask.model.Sex;
 
 import java.util.*;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class TestTask
@@ -37,7 +36,7 @@ public class TestTask
     public Map<Boolean, List<Account>> partitionMaleAccounts()
     {
         return accounts.stream().
-                collect(Collectors.groupingBy(x -> x.getSex().equals(Sex.MALE), Collectors.toList()));
+                collect(Collectors.groupingBy(x -> Sex.MALE.equals(x.getSex()), Collectors.toList()));
     }
 
     /**
@@ -49,12 +48,7 @@ public class TestTask
     public Map<String, List<Account>> groupAccountsByEmailDomain()
     {
         return accounts.stream().
-                collect(Collectors.groupingBy(x ->
-                {
-                    String email = x.getEmail();
-                    String[] split = Pattern.compile("(?=@)").split(email);
-                    return split[1];
-                }, Collectors.toList()));
+                collect(Collectors.groupingBy(x -> x.getEmail().split("@")[1], Collectors.toList()));
     }
 
     /**
