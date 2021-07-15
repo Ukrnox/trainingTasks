@@ -1,15 +1,12 @@
 package forum.controllers;
 
 import forum.entities.Post;
-import forum.entities.Topic;
-import forum.entities.User;
 import forum.entities.Vote;
 import forum.services.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/posts")
@@ -17,107 +14,57 @@ public class PostController {
 
     private final PostService postService;
     private final VoteService voteService;
-    private final UserService userService;
-    private final TopicService topicService;
 
+    @Autowired
     public PostController(PostService postService,
-                          VoteService voteService,
-                          UserService userService,
-                          TopicService topicService) {
+                          VoteService voteService) {
         this.voteService = voteService;
         this.postService = postService;
-        this.userService = userService;
-        this.topicService = topicService;
     }
 
-    @GetMapping("{postId}")
-    public @ResponseBody
-    Post getPostByID(@PathVariable("postId") Long postId) {
+    @GetMapping("/{postId}")
+    public Post getPostByID(@PathVariable("postId") Long postId) {
         return postService.findPostById(postId);
     }
 
     @PostMapping
-    public @ResponseBody
-    Post createNewPost(@RequestParam Long topicId, @RequestParam Long userId, @RequestBody String newPostText) {
-        Post newPostCreator = null;
-        User user = userService.findUserById(userId);
-        Topic topic = topicService.findById(topicId);
-        if (user != null && topic != null) {
-            newPostCreator = new Post();
-            newPostCreator.setAuthor(user);
-            newPostCreator.setTopic(topic);
-            newPostCreator.setText(newPostText);
-            newPostCreator.setDateCreated(LocalDateTime.now());
-            postService.save(newPostCreator);
-        }
-        return newPostCreator;
+    public Post createNewPost(@RequestParam Long userId, @RequestParam Long topicId, @RequestBody String newPostText) {
+        return postService.save(userId, topicId, newPostText);
     }
 
     @PutMapping("/{postId}")
-    public @ResponseBody
-    Post updatePostById(@PathVariable("postId") Long postId, @RequestBody String newText) {
-        postService.updatePostById(postId, newText);
-        return postService.findPostById(postId);
+    public Post updatePostById(@PathVariable("postId") Long postId, @RequestBody String newText) {
+        return postService.updatePostById(postId, newText);
     }
 
-    @DeleteMapping("{postId}")
+    @DeleteMapping("/{postId}")
     void deletePost(@PathVariable("postId") Long postId) {
         postService.removePostById(postId);
     }
 
-    @GetMapping("{postId}/votes")
-    public @ResponseBody
-    Map<String, Long> getAllVotes(@PathVariable("postId") Long postId) {
-        return voteService.findVotesByPostId(postId).stream()
-                .collect(Collectors.toMap(x -> x.getUpVotes() == 1 ? "upVotes" : "downVotes", n -> 1L, Long::sum));
+    @GetMapping("/{postId}/votes")
+    public Map<String, Long> getAllVotes(@PathVariable("postId") Long postId) {
+        return voteService.getAllVotes(postId);
     }
 
     @PostMapping("/{postId}/votes")
-    public @ResponseBody
-    Vote addVote(@PathVariable("postId") Long postId,
-                 @RequestParam Long userId,
-                 @RequestParam String vote) {
-        Post postById = postService.findPostById(postId);
-        User userById = userService.findUserById(userId);
-        Vote votesByUserAndPostId = voteService.findVotesByUserAndPostId(userId, postId);
-        Vote newVote = null;
-        if (postById != null &&
-                userById != null &&
-                votesByUserAndPostId == null &&
-                (vote.equals("upVote") || vote.equals("downVote"))) {
-            newVote = new Vote();
-            newVote.setUpVotes(vote.equals("upVote") ? 1 : 0);
-            newVote.setDownVotes(vote.equals("downVote") ? 1 : 0);
-            newVote.setAuthor(userById);
-            newVote.setPost(postById);
-            voteService.save(newVote);
-        }
-        return newVote;
+    public Vote addVote(@PathVariable("postId") Long postId,
+                        @RequestParam Long userId,
+                        @RequestParam String vote) {
+        return voteService.save(postId, userId, vote);
     }
 
 
     @PutMapping("/{postId}/votes")
-    public @ResponseBody
-    Vote updateVote(@PathVariable("postId") Long postId,
-                    @RequestParam Long userId,
-                    @RequestParam String vote) {
-        Vote votesByUserAndPostId = voteService.findVotesByUserAndPostId(userId, postId);
-        if (votesByUserAndPostId != null &&
-                (vote.equals("upVote") || vote.equals("downVote"))) {
-            int upVote = vote.equals("upVote") ? 1 : 0;
-            int downVote = vote.equals("downVote") ? 1 : 0;
-            long voteId = votesByUserAndPostId.getId();
-            voteService.changeVoteById(downVote, upVote, voteId);
-        }
-        return voteService.findVotesByUserAndPostId(userId, postId);
+    public Vote updateVote(@PathVariable("postId") Long postId,
+                           @RequestParam Long userId,
+                           @RequestParam String vote) {
+        return voteService.changeVoteByUserAndPostId(postId, userId, vote);
     }
 
     @DeleteMapping("/{postId}/votes")
     public void deleteVoteByUserIdAndPostId(@PathVariable("postId") Long postId,
-                           @RequestParam Long userId) {
-        Vote votesByUserAndPostId = voteService.findVotesByUserAndPostId(userId, postId);
-        if (votesByUserAndPostId != null) {
-            voteService.removeVoteById(votesByUserAndPostId.getId());
-        }
+                                            @RequestParam Long userId) {
+        voteService.removeVoteById(userId, postId);
     }
 }

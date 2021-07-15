@@ -18,8 +18,4 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Modifying
     @Query(value = "DELETE FROM posts WHERE id = :postId", nativeQuery = true)
     void removePostById(@Param("postId") Long postId);
-
-    @Modifying
-    @Query(value = "UPDATE posts SET text = :newText WHERE id = :postId", nativeQuery = true)
-    void updatePostById(@Param("postId") Long postId, @Param("newText") String newText);
 }

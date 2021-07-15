@@ -18,8 +18,4 @@ public interface TopicRepository extends JpaRepository<Topic, Long> {
     @Modifying
     @Query(value = "DELETE FROM topics WHERE id = :topicId", nativeQuery = true)
     void removeTopicById(@Param("topicId") Long topicId);
-
-    @Modifying
-    @Query(value = "UPDATE topics SET  title = :newTopicTitle WHERE id = :topicId", nativeQuery = true)
-    void changeTopicTitle(@Param("topicId") Long topicId, @Param("newTopicTitle") String newTopicTitle);
 }

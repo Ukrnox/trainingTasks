@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -63,22 +64,31 @@ public class UserService {
 
     @Transactional
     public User save(User user) {
-        return userRepository.save(user);
+        String login = user.getLogin();
+        User newUserCreator = null;
+        if (!checkLogin(login)) {
+            newUserCreator = new User();
+            newUserCreator.setLogin(login);
+            newUserCreator.setPassword(user.getPassword());
+            newUserCreator.setRegistrationDate(LocalDateTime.now());
+            userRepository.save(newUserCreator);
+        }
+        return newUserCreator;
     }
 
     @Transactional
     public User findUserById(Long userId) {
-        return userRepository.findUserByUserId(userId);
+        return userRepository.findById(userId).orElse(null);
     }
 
     @Transactional
-    public void changeUserLogin(String newLogin, Long userId) {
-        userRepository.changeUserLogin(newLogin, userId);
-    }
-
-    @Transactional
-    public void changeUserPassword(String newPassword, Long userId) {
-        userRepository.changeUserPassword(newPassword, userId);
+    public User updateUserById(Long userId, User updatedUser) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user != null) {
+            user.setPassword(updatedUser.getPassword());
+            user.setLogin(updatedUser.getLogin());
+        }
+        return user;
     }
 
     public List<User> findAll() {
@@ -87,7 +97,8 @@ public class UserService {
 
     public boolean checkLogin(String login) {
         boolean result = false;
-        for (User user : userRepository.findAll()) {
+        List<User> allUsers = userRepository.findAll();
+        for (User user : allUsers) {
             if (user.getLogin().equals(login)) {
                 result = true;
                 break;
@@ -96,9 +107,10 @@ public class UserService {
         return result;
     }
 
-    public User checkPerson(String login, String password) {
+    public User findUserByLoginAndPassword(String login, String password) {
         User registeredUser = null;
-        for (User user : userRepository.findAll()) {
+        List<User> allUsers = userRepository.findAll();
+        for (User user : allUsers) {
             if (user.getLogin().equals(login)) {
                 if (user.getPassword().equals(password)) {
                     registeredUser = user;
