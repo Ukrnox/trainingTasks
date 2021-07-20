@@ -29,36 +29,6 @@ public class UserService {
 
     @Transactional()
     public List<User> findUsers() {
-//        User user1 = new User();
-//        user1.setLogin("Ron");
-//        user1.setPassword("1111");
-//        user1.setRegistrationDate(LocalDateTime.now());
-//
-//        User user2 = new User();
-//        user2.setLogin("Lily");
-//        user2.setPassword("1111");
-//        user2.setRegistrationDate(LocalDateTime.now());
-//
-//        User user3 = new User();
-//        user3.setLogin("Cookie");
-//        user3.setPassword("1111");
-//        user3.setRegistrationDate(LocalDateTime.now());
-//
-//        userRepository.save(user1);
-//        userRepository.save(user2);
-//        userRepository.save(user3);
-//
-//        Group newGroup1 = new Group();
-//        newGroup1.setName("Politics");
-//        Group newGroup2 = new Group();
-//        newGroup2.setName("Weather");
-//        Group newGroup3 = new Group();
-//        newGroup3.setName("Sport");
-//
-//        groupRepository.save(newGroup1);
-//        groupRepository.save(newGroup2);
-//        groupRepository.save(newGroup3);
-
         return userRepository.findAll();
     }
 

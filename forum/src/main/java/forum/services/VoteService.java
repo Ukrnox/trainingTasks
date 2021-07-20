@@ -35,7 +35,6 @@ public class VoteService {
         this.userRepository = userRepository;
     }
 
-
     public List<Vote> findVotesByUserID(Long userId) {
         return voteRepository.findVotesByUserId(userId);
     }
