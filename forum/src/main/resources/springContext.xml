@@ -26,6 +26,7 @@
     <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
         <property name="driverClassName" value="org.sqlite.JDBC"/>
         <property name="url" value="jdbc:sqlite:C:/Tomcat-9/webapps/ROOT/WEB-INF/classes/forum.sqlite"/>
+<!--        <property name="url" value="jdbc:sqlite:/opt/tomcat9/webapps/ROOT/WEB-INF/classes/forum.sqlite"/>-->
         <property name="username" value=""/>
         <property name="password" value=""/>
     </bean>

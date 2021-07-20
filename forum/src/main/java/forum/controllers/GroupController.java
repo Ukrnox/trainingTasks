@@ -23,44 +23,32 @@ public class GroupController {
     }
 
     @GetMapping
-    public @ResponseBody
-    List<Group> getGroups() {
+    public List<Group> getGroups() {
         return groupService.findAll();
     }
 
-    @GetMapping("{groupId}")
-    public @ResponseBody
-    Group getGroupByID(@PathVariable("groupId") Long groupId) {
+    @GetMapping("/{groupId}")
+    public Group getGroupByID(@PathVariable("groupId") Long groupId) {
         return groupService.findById(groupId);
     }
 
     @PostMapping
-    public @ResponseBody
-    Group createNewGroup(@RequestParam String newGroupTitle) {
-        Group newGroup = new Group();
-        newGroup.setName(newGroupTitle);
-        return groupService.createNewGroup(newGroup);
+    public Group createNewGroup(@RequestParam String newGroupTitle) {
+        return groupService.createNewGroup(newGroupTitle);
     }
 
-    @GetMapping("{groupId}/topics")
-    public @ResponseBody List<Topic> getAllTopicsByGroupID (@PathVariable("groupId") Long groupId) {
+    @GetMapping("/{groupId}/topics")
+    public List<Topic> getAllTopicsByGroupID(@PathVariable("groupId") Long groupId) {
         return topicService.findTopicByGroupId(groupId);
     }
 
-    @PutMapping("{groupId}")
-    public @ResponseBody
-    Group updateGroupTitleById(@PathVariable("groupId") Long groupId, @RequestParam String newGroupTitle) {
-        Group groupForResponse = null;
-        if (groupService.findById(groupId) != null) {
-            groupService.updateGroupTitle(groupId, newGroupTitle);
-            groupForResponse = groupService.findById(groupId);
-        }
-        return groupForResponse;
+    @PutMapping("/{groupId}")
+    public Group updateGroupTitleById(@PathVariable("groupId") Long groupId, @RequestParam String newGroupTitle) {
+        return groupService.updateGroupTitle(groupId, newGroupTitle);
     }
 
-    @DeleteMapping("{groupId}")
+    @DeleteMapping("/{groupId}")
     public void deleteGroup(@PathVariable("groupId") Long groupId) {
         groupService.deleteGroupById(groupId);
     }
-
 }

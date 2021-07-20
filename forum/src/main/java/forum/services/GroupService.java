@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class GroupService {
@@ -27,22 +26,23 @@ public class GroupService {
     }
 
     public Group findById(Long groupId) {
-        Group group = null;
-        Optional<Group> byId = groupRepository.findById(groupId);
-        if (byId.isPresent()) {
-            group = byId.get();
+        return groupRepository.findById(groupId).orElse(null);
+    }
+
+    @Transactional
+    public Group createNewGroup(String newGroupTitle) {
+        Group newGroup = new Group();
+        newGroup.setName(newGroupTitle);
+        return groupRepository.save(newGroup);
+    }
+
+    @Transactional
+    public Group updateGroupTitle(Long groupId, String newTitle) {
+        Group group = groupRepository.findById(groupId).orElse(null);
+        if (group != null) {
+            group.setName(newTitle);
         }
         return group;
-    }
-
-    @Transactional
-    public Group createNewGroup(Group group) {
-        return groupRepository.save(group);
-    }
-
-    @Transactional
-    public void updateGroupTitle(Long groupId, String newTitle) {
-        groupRepository.changeGroupTitle(newTitle, groupId);
     }
 
     @Transactional
