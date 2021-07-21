@@ -85,14 +85,16 @@ public class VoteServiceImpl implements VoteService {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Vote> query = cb.createQuery(Vote.class);
         Root<Vote> root = query.from(Vote.class);
-        Predicate predicateForPostId
-                = cb.equal(root.get("author"), longUserId);
-        Predicate predicateForUserId
-                = cb.equal(root.get("post"), longPostId);
-        Predicate finalPredicate
-                = cb.and(predicateForPostId, predicateForUserId);
-        query.where(finalPredicate);
+        query.where(getFinalPredForVoteByUserAndPostId(cb, root, longPostId, longUserId));
         return entityManager.createQuery(query).getResultList().stream().findFirst().orElse(null);
+    }
+
+    private Predicate getFinalPredForVoteByUserAndPostId(CriteriaBuilder cb, Root<Vote> root, long longPostId, long longUserId) {
+        Predicate predicateForUserId
+                = cb.equal(root.get("author"), longUserId);
+        Predicate predicateForPostId
+                = cb.equal(root.get("post"), longPostId);
+        return cb.and(predicateForPostId, predicateForUserId);
     }
 
     @Override
@@ -102,13 +104,7 @@ public class VoteServiceImpl implements VoteService {
         CriteriaDelete<Vote> delete = criteriaBuilder.
                 createCriteriaDelete(Vote.class);
         Root<Vote> root = delete.from(Vote.class);
-        Predicate predicateForPostId
-                = criteriaBuilder.equal(root.get("author"), longUserId);
-        Predicate predicateForUserId
-                = criteriaBuilder.equal(root.get("post"), longPostId);
-        Predicate finalPredicate
-                = criteriaBuilder.and(predicateForPostId, predicateForUserId);
-        delete.where(finalPredicate);
+        delete.where(getFinalPredForVoteByUserAndPostId(criteriaBuilder, root, longPostId, longUserId));
         entityManager.createQuery(delete).executeUpdate();
     }
 
