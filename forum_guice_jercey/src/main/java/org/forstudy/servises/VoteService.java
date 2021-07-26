@@ -1,15 +1,18 @@
 package org.forstudy.servises;
 
 import com.google.inject.ImplementedBy;
+import org.forstudy.dto.AllPostVotesDTO;
+import org.forstudy.entities.Vote;
+import org.forstudy.exceptionhandling.AppException;
 import org.forstudy.servises.impl.VoteServiceImpl;
 
 @ImplementedBy(VoteServiceImpl.class)
 public interface VoteService {
-    String getAllVotes(long longPostId);
+    AllPostVotesDTO getAllVotes(String postId, String link) throws AppException;
 
-    String save(long longPostID, long longUserId, String vote);
+    Vote save(String postID, String userId, String vote, String link) throws AppException;
 
-    void removeVoteById(long longPostID, long longUserId);
+    void removeVoteById(String postID, String userId, String link) throws AppException;
 
-    String changeVoteByUserAndPostId(long longPostID, long longUserId, String vote);
+    Vote changeVoteByUserAndPostId(String postID, String userId, String vote, String link) throws AppException;
 }

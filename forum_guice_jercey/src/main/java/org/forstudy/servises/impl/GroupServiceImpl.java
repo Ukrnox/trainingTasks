@@ -1,11 +1,10 @@
 package org.forstudy.servises.impl;
 
 import com.google.inject.persist.Transactional;
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
 import org.forstudy.entities.Group;
+import org.forstudy.exceptionhandling.AppException;
 import org.forstudy.servises.GroupService;
+import org.forstudy.servises.ValidationService;
 
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
@@ -17,104 +16,65 @@ import java.util.List;
 public class GroupServiceImpl implements GroupService {
 
     private final EntityManager entityManager;
+    private final ValidationService validationService;
 
     @Inject
-    public GroupServiceImpl(EntityManager entityManager) {
+    public GroupServiceImpl(EntityManager entityManager, ValidationService validationService) {
         this.entityManager = entityManager;
+        this.validationService = validationService;
     }
 
     @Override
     @Transactional
-    public String findAll() {
-        List<Group> groups = entityManager.createQuery("FROM Group ").getResultList();
-        JSONArray jsonArray = new JSONArray();
-        JSONObject jsonObject = new JSONObject();
-        try {
-            for (Group group : groups) {
-                JSONObject groupJSON = makeGroupJson(group);
-                jsonArray.put(groupJSON);
-            }
-            jsonObject.put("groups", jsonArray);
-        }
-        catch (Exception ex) {
-            ex.printStackTrace();
-        }
-        return jsonObject.toString();
+    public List<Group> findAll() {
+        return entityManager.createQuery("FROM Group ").getResultList();
     }
 
     @Override
-    public String findById(String groupId) {
+    public Group findById(String groupId, String link) throws AppException {
+        validationService.idValidation(groupId, link);
         Group group = entityManager.find(Group.class, Long.parseLong(groupId));
-        String result = "";
-        try {
-            if (group != null) {
-                result = makeGroupJson(group).toString();
-            }
-            else {
-                result = "No Group with id " + groupId;
-            }
+        if (group == null) {
+            throw new AppException(400, "AppException",
+                    "No Group with id " + groupId, link);
         }
-        catch (JSONException e) {
-            e.printStackTrace();
-        }
-        return result;
+        return group;
     }
 
     @Override
     @Transactional
-    public String createNewGroup(String newGroupTitle) {
+    public Group createNewGroup(String newGroupTitle, String link) {
         Group newGroup = new Group();
         newGroup.setName(newGroupTitle);
         entityManager.persist(newGroup);
-        JSONObject jsonObject = new JSONObject();
-        try {
-            jsonObject = makeGroupJson(newGroup);
-        }
-        catch (JSONException e) {
-            e.printStackTrace();
-        }
-        return jsonObject.toString();
+        return newGroup;
     }
 
     @Override
     @Transactional
-    public String updateGroupTitle(String groupId, String newGroupTitle) {
-        String result;
+    public Group updateGroupTitle(String groupId, String newGroupTitle, String link) throws AppException {
+        validationService.idValidation(groupId, link);
         Group group = entityManager.find(Group.class, Long.parseLong(groupId));
-        if (group != null) {
-            group.setName(newGroupTitle);
-            try {
-                JSONObject groupJSON = makeGroupJson(group);
-                result = groupJSON.toString();
-            }
-            catch (JSONException e) {
-                e.printStackTrace();
-                result = "";
-            }
+        if (group == null) {
+            throw new AppException(400, "AppException",
+                    "No group with ID " + groupId, link + groupId);
         }
-        else {
-            result = "No Group with id : " + groupId;
-        }
-        return result;
+        group.setName(newGroupTitle);
+        return group;
     }
 
     @Override
     @Transactional
-    public void deleteGroupById(String groupId) {
+    public void deleteGroupById(String groupId, String link) throws AppException {
+        validationService.idValidation(groupId, link);
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
         CriteriaDelete<Group> delete = criteriaBuilder.
                 createCriteriaDelete(Group.class);
         Root<Group> root = delete.from(Group.class);
-        delete.where(criteriaBuilder.equal(root.get("id"), groupId));
-        entityManager.createQuery(delete).executeUpdate();
-    }
-
-    private JSONObject makeGroupJson(Group group) throws JSONException {
-        JSONObject groupJSON = new JSONObject();
-        if (group != null) {
-            groupJSON.put("id", group.getId());
-            groupJSON.put("login", group.getName());
+        delete.where(criteriaBuilder.equal(root.get("id"), Long.parseLong(groupId)));
+        if (entityManager.createQuery(delete).executeUpdate() == 0) {
+            throw new AppException(400, "AppException",
+                    "No group with ID " + groupId, link + groupId);
         }
-        return groupJSON;
     }
 }

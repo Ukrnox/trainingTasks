@@ -1,5 +1,6 @@
 package org.forstudy.entities;
 
+import org.codehaus.jackson.annotate.JsonIgnore;
 import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
@@ -14,10 +15,12 @@ public class Topic {
     @GenericGenerator(name = "increment", strategy = "increment")
     private long id;
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User author;
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "group_id")
     private Group group;
@@ -28,8 +31,8 @@ public class Topic {
     @Column(name = "created_date")
     private LocalDateTime dateOfCreation;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-
     private Set<Post> posts;
 
     public long getId() {

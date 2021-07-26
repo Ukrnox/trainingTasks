@@ -1,17 +1,22 @@
 package org.forstudy.servises;
 
 import com.google.inject.ImplementedBy;
+import org.forstudy.entities.Post;
+import org.forstudy.entities.Topic;
+import org.forstudy.exceptionhandling.AppException;
 import org.forstudy.servises.impl.PostServiceImpl;
+
+import java.util.List;
 
 @ImplementedBy(PostServiceImpl.class)
 public interface PostService {
-    String findPostsByTopicId(long topicId);
+    List<Post> findPostsByTopicId(String topicId, String link) throws AppException;
 
-    String findPostById(long parseLong);
+    Post findPostById(String postId, String link) throws AppException;
 
-    String save(long longUserId, long longTopicId, String newPostText);
+    Post save(String userId, String topicId, Post newPost, String link) throws AppException;
 
-    String updatePostById(long longPostId, String newPostText);
+    Post updatePostById(String postId, Post newPost, String link) throws AppException;
 
-    void removePostById(long longPostId);
+    void removePostById(String postId, String link) throws AppException;
 }

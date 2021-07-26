@@ -1,13 +1,12 @@
 package org.forstudy.servises.impl;
 
 import com.google.inject.persist.Transactional;
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
 import org.forstudy.entities.Group;
 import org.forstudy.entities.Topic;
 import org.forstudy.entities.User;
+import org.forstudy.exceptionhandling.AppException;
 import org.forstudy.servises.TopicService;
+import org.forstudy.servises.ValidationService;
 
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
@@ -18,123 +17,87 @@ import java.util.List;
 public class TopicServiceImpl implements TopicService {
 
     private final EntityManager entityManager;
+    private final ValidationService validationService;
 
     @Inject
-    public TopicServiceImpl(EntityManager entityManager) {
+    public TopicServiceImpl(EntityManager entityManager, ValidationService validationService) {
         this.entityManager = entityManager;
+        this.validationService = validationService;
     }
 
     @Override
     @Transactional
-    public String findTopicByGroupId(String groupId) {
+    public List<Topic> findTopicsByGroupId(String groupId, String link) throws AppException {
+        validationService.idValidation(groupId, link);
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Topic> query = cb.createQuery(Topic.class);
         Root<Topic> e = query.from(Topic.class);
         query.where(cb.equal(e.get("group"), Long.parseLong(groupId)));
-        List<Topic> topicsList = entityManager.createQuery(query).getResultList();
-        JSONArray jsonArray = new JSONArray();
-        JSONObject jsonObject = new JSONObject();
-        try {
-            for (Topic topic : topicsList) {
-                JSONObject topicJson = makeTopicJson(topic);
-                jsonArray.put(topicJson);
-            }
-            jsonObject.put("topics", jsonArray);
-        }
-        catch (Exception ex) {
-            ex.printStackTrace();
-        }
-        return jsonArray.toString();
+        return entityManager.createQuery(query).getResultList();
     }
 
 
     @Override
-    public String findById(String topicId) {
+    public Topic findById(String topicId, String link) throws AppException {
+        validationService.idValidation(topicId, link);
         Topic topic = entityManager.find(Topic.class, topicId);
-        String result = "";
-        try {
-            if (topic != null) {
-                result = makeTopicJson(topic).toString();
-            }
-            else {
-                result = "No Topic with id " + topicId;
-            }
+        if (topic == null) {
+            throw new AppException(400, "AppException",
+                    "No topic with ID " + topicId, link + topicId);
         }
-        catch (JSONException e) {
-            e.printStackTrace();
-        }
-        return result;
+        return topic;
     }
 
     @Override
     @Transactional
-    public String save(String groupId, String userId, String newTopicTitle) {
+    public Topic save(String groupId, String userId, Topic topic, String link) throws AppException {
+        validationService.idValidation(groupId + userId, link);
         User user = entityManager.find(User.class, Long.parseLong(userId));
         Group group = entityManager.find(Group.class, Long.parseLong(groupId));
-        String result;
+        Topic newTopic;
         if (user != null && group != null) {
-            Topic newTopic = new Topic();
-            newTopic.setTitle(newTopicTitle);
+            newTopic = new Topic();
+            newTopic.setTitle(topic.getTitle());
             newTopic.setAuthor(user);
             newTopic.setGroup(group);
             newTopic.setDateOfCreation(LocalDateTime.now());
             entityManager.persist(newTopic);
-            JSONObject topicJSON;
-            try {
-                topicJSON = makeTopicJson(newTopic);
-                result = topicJSON.toString();
-            }
-            catch (JSONException e) {
-                e.printStackTrace();
-                result = "";
-            }
         }
         else {
-            result = "Wrong request information!";
+            throw new AppException(400, "AppException",
+                    "Wrong group or user id", link);
         }
-        return result;
-    }
-
-    private JSONObject makeTopicJson(Topic newTopic) throws JSONException {
-        JSONObject groupJSON = new JSONObject();
-        if (newTopic != null) {
-            groupJSON.put("id", newTopic.getId());
-            groupJSON.put("login", newTopic.getTitle());
-            groupJSON.put("dateOfCreation", newTopic.getDateOfCreation());
-        }
-        return groupJSON;
+        return newTopic;
     }
 
     @Override
     @Transactional
-    public String changeTopicTitle(String topicId, String newTopicTitle) {
-        String result;
+    public Topic changeTopicTitle(String topicId, Topic newTopic, String link) throws AppException {
+        validationService.idValidation(topicId, link);
+        validationService.topicValidation(newTopic, link);
         Topic topic = entityManager.find(Topic.class, Long.parseLong(topicId));
         if (topic != null) {
-            try {
-                topic.setTitle(newTopicTitle);
-                JSONObject topicJSON = makeTopicJson(topic);
-                result = topicJSON.toString();
-            }
-            catch (JSONException e) {
-                e.printStackTrace();
-                result = "";
-            }
+            topic.setTitle(newTopic.getTitle());
         }
         else {
-            result = "No Topic with id : " + topicId;
+            throw new AppException(400, "AppException",
+                    "No topic with id " + topicId, link);
         }
-        return result;
+        return topic;
     }
 
     @Override
     @Transactional
-    public void removeTopicById(String topicId) {
+    public void removeTopicById(String topicId, String link) throws AppException {
+        validationService.idValidation(topicId, link);
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
         CriteriaDelete<Topic> delete = criteriaBuilder.
                 createCriteriaDelete(Topic.class);
         Root<Topic> root = delete.from(Topic.class);
-        delete.where(criteriaBuilder.equal(root.get("id"), topicId));
-        entityManager.createQuery(delete).executeUpdate();
+        delete.where(criteriaBuilder.equal(root.get("id"), Long.parseLong(topicId)));
+        if (entityManager.createQuery(delete).executeUpdate() == 0) {
+            throw new AppException(400, "AppException",
+                    "No topic with ID " + topicId, link);
+        }
     }
 }

@@ -1,13 +1,12 @@
 package org.forstudy.servises.impl;
 
 import com.google.inject.persist.Transactional;
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
 import org.forstudy.entities.Post;
 import org.forstudy.entities.Topic;
 import org.forstudy.entities.User;
+import org.forstudy.exceptionhandling.AppException;
 import org.forstudy.servises.PostService;
+import org.forstudy.servises.ValidationService;
 
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
@@ -21,115 +20,85 @@ import java.util.List;
 public class PostServiceImpl implements PostService {
 
     private final EntityManager entityManager;
+    private final ValidationService validationService;
 
     @Inject
-    public PostServiceImpl(EntityManager entityManager) {
+    public PostServiceImpl(EntityManager entityManager, ValidationService validationService) {
         this.entityManager = entityManager;
+        this.validationService = validationService;
     }
 
     @Override
-    public String findPostsByTopicId(long topicId) {
+    public List<Post> findPostsByTopicId(String topicId, String link) throws AppException {
+        validationService.idValidation(topicId, link);
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Post> query = cb.createQuery(Post.class);
         Root<Post> e = query.from(Post.class);
-        query.where(cb.equal(e.get("topic"), topicId));
-        List<Post> postsList = entityManager.createQuery(query).getResultList();
-        JSONArray jsonArray = new JSONArray();
-        JSONObject jsonObject = new JSONObject();
-        try {
-            for (Post post : postsList) {
-                JSONObject topicJson = makePostJson(post);
-                jsonArray.put(topicJson);
-            }
-            jsonObject.put("posts", jsonArray);
-        }
-        catch (JSONException ex) {
-            ex.printStackTrace();
-        }
-        return jsonArray.toString();
+        query.where(cb.equal(e.get("topic"), Long.parseLong(topicId)));
+        return entityManager.createQuery(query).getResultList();
     }
 
     @Override
-    public String findPostById(long postId) {
-        Post post = entityManager.find(Post.class, postId);
-        String result = "";
-        try {
-            if (post != null) {
-                result = makePostJson(post).toString();
-            }
-            else {
-                result = "No Post with id " + postId;
-            }
+    public Post findPostById(String postId, String link) throws AppException {
+        validationService.idValidation(postId, link);
+        Post post = entityManager.find(Post.class, Long.parseLong(postId));
+        if (post == null) {
+            throw new AppException(400, "AppException",
+                    "No post with ID " + postId, link);
         }
-        catch (JSONException e) {
-            e.printStackTrace();
-        }
-        return result;
+        return post;
     }
 
     @Override
     @Transactional
-    public String save(long longUserId, long longTopicId, String newPostText) {
-        User user = entityManager.find(User.class, longUserId);
-        Topic topic = entityManager.find(Topic.class, longTopicId);
-        Post newPostCreator = null;
+    public Post save(String userId, String topicId, Post newPost, String link) throws AppException {
+        validationService.idValidation(userId + topicId, link);
+        validationService.postValidation(newPost, link);
+        User user = entityManager.find(User.class, Long.parseLong(userId));
+        Topic topic = entityManager.find(Topic.class, Long.parseLong(topicId));
+        Post newPostCreator;
         if (user != null && topic != null) {
             newPostCreator = new Post();
             newPostCreator.setAuthor(user);
             newPostCreator.setTopic(topic);
             newPostCreator.setDateCreated(LocalDateTime.now());
-            newPostCreator.setText(newPostText);
+            newPostCreator.setText(newPost.getText());
             entityManager.persist(newPostCreator);
         }
-        JSONObject jsonObject = new JSONObject();
-        try {
-            jsonObject = makePostJson(newPostCreator);
+        else {
+            throw new AppException(400, "AppException",
+                    "Wrong topic or user id", link);
         }
-        catch (JSONException e) {
-            e.printStackTrace();
-        }
-        return jsonObject.toString();
+        return newPostCreator;
     }
 
     @Override
     @Transactional
-    public String updatePostById(long longPostId, String newPostText) {
-        String result;
-        Post post = entityManager.find(Post.class, longPostId);
+    public Post updatePostById(String postId, Post newPost, String link) throws AppException {
+        validationService.idValidation(postId, link);
+        Post post = entityManager.find(Post.class, Long.parseLong(postId));
         if (post != null) {
-            try {
-                post.setText(newPostText);
-                JSONObject postJSON = makePostJson(post);
-                result = postJSON.toString();
-            }
-            catch (JSONException e) {
-                e.printStackTrace();
-                result = "";
-            }
+            post.setText(newPost.getText());
         }
         else {
-            result = "No Post with id : " + longPostId;
+            throw new AppException(400, "AppException",
+                    "No post with id " + postId, link);
         }
-        return result;
+        return post;
     }
 
     @Override
     @Transactional
-    public void removePostById(long longPostId) {
+    public void removePostById(String postId, String link) throws AppException {
+        validationService.idValidation(postId, link);
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
         CriteriaDelete<Post> delete = criteriaBuilder.
                 createCriteriaDelete(Post.class);
         Root<Post> root = delete.from(Post.class);
-        delete.where(criteriaBuilder.equal(root.get("id"), longPostId));
-        entityManager.createQuery(delete).executeUpdate();
-    }
-
-    private JSONObject makePostJson(Post post) throws JSONException {
-        JSONObject groupJSON = new JSONObject();
-        if (post != null) {
-            groupJSON.put("id", post.getId());
-            groupJSON.put("login", post.getText());
+        delete.where(criteriaBuilder.equal(root.get("id"), Long.parseLong(postId)));
+        if (entityManager.createQuery(delete).executeUpdate() == 0) {
+            throw new AppException(400, "AppException",
+                    "No post with ID " + postId, link);
         }
-        return groupJSON;
     }
 }

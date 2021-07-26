@@ -2,11 +2,17 @@ package org.forstudy.controllers;
 
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
+import org.forstudy.dto.AllPostVotesDTO;
+import org.forstudy.entities.Post;
+import org.forstudy.entities.Vote;
+import org.forstudy.exceptionhandling.AppException;
+import org.forstudy.goodresponse.GoodResponseMassage;
 import org.forstudy.servises.*;
 
 import javax.inject.Inject;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 
 @Path("/posts")
@@ -14,6 +20,7 @@ public class PostController {
 
     private final PostService postService;
     private final VoteService voteService;
+    private final String link = "/posts/";
 
     @Inject
     public PostController(PostService postService,
@@ -25,145 +32,82 @@ public class PostController {
     @GET
     @Path("/{postId}")
     @Produces(MediaType.APPLICATION_JSON)
-    public String getPostByID(@PathParam("postId") String postId) {
-        String result;
-        try {
-            long id = Long.parseLong(postId);
-            if ((result = postService.findPostById(Long.parseLong(postId))) == null) {
-                result = "No post with id " + id;
-            }
-        }
-        catch (NumberFormatException e) {
-            result = "Wrong postId";
-        }
-        return result;
+    public Post getPostByID(@PathParam("postId") String postId) throws AppException {
+        return postService.findPostById(postId, link + postId);
     }
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public String createNewPost(@QueryParam("userId") String userId, @QueryParam("topicId") String topicId, JSONObject jsonObject) {
-        String result;
-        try {
-            long longUserId = Long.parseLong(userId);
-            long longTopicId = Long.parseLong(topicId);
-            try {
-                String newPostText = jsonObject.getString("newPostText");
-                result = postService.save(longUserId, longTopicId, newPostText);
-            }
-            catch (JSONException e) {
-                e.printStackTrace();
-                result = "Wrong JSON in request";
-            }
-        }
-        catch (NumberFormatException e) {
-            result = "Wrong ID format";
-        }
-        return result;
+    public Post createNewPost(@QueryParam("userId") String userId, @QueryParam("topicId") String topicId, Post newPost) throws AppException {
+        return postService.save(userId, topicId, newPost, link);
     }
 
     @PUT
     @Path("/{postId}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public String updatePostById(@PathParam("postId") String postId, JSONObject jsonObject) {
-        String result;
-        try {
-            long longPostId = Long.parseLong(postId);
-            try {
-                String newPostText = jsonObject.getString("newPostText");
-                result = postService.updatePostById(longPostId, newPostText);
-            }
-            catch (JSONException e) {
-                e.printStackTrace();
-                result = "Wrong JSON in request";
-            }
-
-        }
-        catch (NumberFormatException e) {
-            result = "Wrong postId format";
-        }
-        return result;
+    public Post updatePostById(@PathParam("postId") String postId, Post newPost) throws AppException {
+        return postService.updatePostById(postId, newPost, link + postId);
     }
 
     @DELETE
     @Path("/{postId}")
     @Produces(MediaType.APPLICATION_JSON)
-    public void deletePost(@PathParam("postId") String postId) {
-        try {
-            long longPostId = Long.parseLong(postId);
-            postService.removePostById(longPostId);
-        }
-        catch (NumberFormatException e) {
-            e.printStackTrace();
-        }
+    public void deletePost(@PathParam("postId") String postId) throws AppException {
+        postService.removePostById(postId, link + postId);
     }
 
     @GET
     @Path("/{postId}/votes")
     @Produces(MediaType.APPLICATION_JSON)
-    public String getAllVotes(@PathParam("postId") String postId) {
-        String result;
-        try {
-            long longPostId = Long.parseLong(postId);
-            result = voteService.getAllVotes(longPostId);
-        }
-        catch (NumberFormatException e) {
-            result = "Wrong postId format";
-        }
-        return result;
+    public AllPostVotesDTO getAllVotes(@PathParam("postId") String postId) throws AppException {
+        return voteService.getAllVotes(postId, link);
     }
 
     @POST
     @Path("/{postId}/votes")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public String addVote(@PathParam("postId") String postId, JSONObject jsonObject) {
-        String result;
+    public Vote addVote(@PathParam("postId") String postId, JSONObject jsonObject) throws AppException {
+        String userId = "";
+        String vote = "";
         try {
-            long longPostID = Long.parseLong(postId);
-            long longUserId = Long.parseLong(jsonObject.getString("userId"));
-            String vote = jsonObject.getString("vote");
-            result = voteService.save(longPostID, longUserId, vote);
+            userId = jsonObject.getString("userId");
+            vote = jsonObject.getString("vote");
         }
-        catch (JSONException | NumberFormatException e) {
+        catch (JSONException e) {
             e.printStackTrace();
-            result = "JSONException | NumberFormatException";
         }
-        return result;
+        return voteService.save(postId, userId, vote, link + postId + "/votes");
     }
 
 
     @PUT
     @Path("/{postId}/votes")
     @Produces(MediaType.APPLICATION_JSON)
-    public String updateVote(@PathParam("postId") String postId, JSONObject jsonObject) {
-        String result;
+    public Vote updateVote(@PathParam("postId") String postId, JSONObject jsonObject) throws AppException {
+        String userId = "";
+        String vote = "";
         try {
-            long longPostID = Long.parseLong(postId);
-            long longUserId = Long.parseLong(jsonObject.getString("userId"));
-            String vote = jsonObject.getString("vote");
-            result = voteService.changeVoteByUserAndPostId(longPostID, longUserId, vote);
+            userId = jsonObject.getString("userId");
+            vote = jsonObject.getString("vote");
         }
         catch (JSONException | NumberFormatException e) {
             e.printStackTrace();
-            result = "JSONException | NumberFormatException";
         }
 
-        return result;
+        return voteService.changeVoteByUserAndPostId(postId, userId, vote, link + postId + "/votes");
     }
 
     @DELETE
     @Path("/{postId}/votes")
-    public void deleteVoteByUserIdAndPostId(@PathParam("postId") String postId,
-                                            @QueryParam("userId") String userId) {
-        try {
-            long longPostID = Long.parseLong(postId);
-            long longUserId = Long.parseLong(userId);
-            voteService.removeVoteById(longPostID, longUserId);
-        }
-        catch (NumberFormatException e) {
-            e.printStackTrace();
-        }
+    public Response deleteVoteByUserIdAndPostId(@PathParam("postId") String postId,
+                                                @QueryParam("userId") String userId) throws AppException {
+        voteService.removeVoteById(postId, userId, link + postId + "/votes");
+        return Response.status(200)
+                .entity(new GoodResponseMassage("Vote with postId " + postId + " and user id " + userId + " was deleted"))
+                .type(MediaType.APPLICATION_JSON).
+                        build();
     }
 }

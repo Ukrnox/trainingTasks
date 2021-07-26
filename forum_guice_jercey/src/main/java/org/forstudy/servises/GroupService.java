@@ -1,17 +1,21 @@
 package org.forstudy.servises;
 
 import com.google.inject.ImplementedBy;
+import org.forstudy.entities.Group;
+import org.forstudy.exceptionhandling.AppException;
 import org.forstudy.servises.impl.GroupServiceImpl;
+
+import java.util.List;
 
 @ImplementedBy(GroupServiceImpl.class)
 public interface GroupService {
-    String findAll();
+    List<Group> findAll();
 
-    String findById(String groupId);
+    Group findById(String groupId, String link) throws AppException;
 
-    String createNewGroup(String newGroupTitle);
+    Group createNewGroup(String newGroupTitle, String link);
 
-    String updateGroupTitle(String groupId, String newGroupTitle);
+    Group updateGroupTitle(String groupId, String newGroupTitle, String link) throws AppException;
 
-    void deleteGroupById(String groupId);
+    void deleteGroupById(String groupId, String link) throws AppException;
 }

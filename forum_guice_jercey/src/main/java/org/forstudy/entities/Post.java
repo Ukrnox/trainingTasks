@@ -1,5 +1,6 @@
 package org.forstudy.entities;
 
+import org.codehaus.jackson.annotate.JsonIgnore;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
@@ -21,17 +22,19 @@ public class Post {
 
     @ManyToOne
     @JoinColumn(name = "user_id")
+    @JsonIgnore
     private User author;
 
     @ManyToOne
     @JoinColumn(name = "topic_id")
+    @JsonIgnore
     private Topic topic;
 
     @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToMany(mappedBy = "post",
             cascade = CascadeType.REMOVE,
             orphanRemoval = true)
-
+    @JsonIgnore
     private Set<Vote> votes;
 
     @Column(name = "created_date")

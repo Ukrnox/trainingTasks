@@ -1,17 +1,23 @@
 package org.forstudy.controllers;
 
 import com.google.inject.Inject;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
+import org.forstudy.entities.User;
+import org.forstudy.exceptionhandling.AppException;
+import org.forstudy.goodresponse.GoodResponseMassage;
 import org.forstudy.servises.UserService;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.xml.bind.annotation.XmlRootElement;
+import java.util.List;
 
-@Path("/user")
+@Path("/users")
+@XmlRootElement
 public class UserController {
 
     private final UserService userService;
+    private final String link = "/users/";
 
     @Inject
     public UserController(UserService userService) {
@@ -20,54 +26,40 @@ public class UserController {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public String listOfAllUsers() {
-        System.out.println("GuiceController : list");
+    public List<User> listOfAllUsers() {
         return userService.listOfAllUsers();
     }
 
     @GET
     @Path("/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
-    public String getUserById(@PathParam("userId") String userId) {
-        return userService.findUserById(Long.parseLong(userId));
+    public User getUserById(@PathParam("userId") String userId) throws AppException {
+        String link = this.link + userId;
+        return userService.findUserById(userId, link);
     }
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public String save(JSONObject jsonObject) {
-        System.out.println("GuiceController : save");
-        String userJSON;
-        try {
-            userJSON = userService.save(jsonObject.getString("login"), jsonObject.getString("password"));
-        }
-        catch (JSONException e) {
-            e.printStackTrace();
-            userJSON = "Wrong JSON in request";
-        }
-        return userJSON;
+    public User save(User userJSON) throws AppException {
+        return userService.save(userJSON, link);
     }
-
 
     @PUT
     @Path("/{userId}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public String updateUserById(@PathParam("userId") String userId, JSONObject jsonObject) {
-        String userJSON;
-        try {
-            userJSON = userService.updateUserById(userId, jsonObject.getString("login"), jsonObject.getString("password"));
-        }
-        catch (JSONException e) {
-            e.printStackTrace();
-            userJSON = "Wrong JSON in request";
-        }
-        return userJSON;
+    public User updateUserById(@PathParam("userId") String userId, User userFromJSON) throws AppException {
+        return userService.updateUserById(userId, userFromJSON, link + userId);
     }
 
     @DELETE
     @Path("/{userId}")
-    public void deleteUser(@PathParam("userId") String userId) {
-        userService.deleteUserById(userId);
+    public Response deleteUser(@PathParam("userId") String userId) throws AppException {
+        userService.deleteUserById(userId, link);
+        return Response.status(200)
+                .entity(new GoodResponseMassage("User with id " + userId + " was deleted"))
+                .type(MediaType.APPLICATION_JSON).
+                        build();
     }
 }

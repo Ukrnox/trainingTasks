@@ -1,5 +1,6 @@
 package org.forstudy.entities;
 
+import org.codehaus.jackson.annotate.JsonIgnore;
 import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
@@ -20,11 +21,11 @@ public class Group {
     @JoinTable(name = "users_group",
             joinColumns = @JoinColumn(name = "group_id"),
             inverseJoinColumns = @JoinColumn(name = "user_id"))
-
+    @JsonIgnore
     private Set<User> users;
 
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-
+    @JsonIgnore
     private Set<Topic> topics;
 
     public long getId() {

@@ -3,7 +3,10 @@ package org.forstudy.servises.impl;
 import com.google.inject.persist.Transactional;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
+import org.forstudy.dto.AllPostVotesDTO;
 import org.forstudy.entities.*;
+import org.forstudy.exceptionhandling.AppException;
+import org.forstudy.servises.ValidationService;
 import org.forstudy.servises.VoteService;
 
 import javax.inject.Inject;
@@ -16,41 +19,40 @@ import java.util.stream.Collectors;
 public class VoteServiceImpl implements VoteService {
 
     private final EntityManager entityManager;
+    private final ValidationService validationService;
 
     @Inject
-    public VoteServiceImpl(EntityManager entityManager) {
+    public VoteServiceImpl(EntityManager entityManager, ValidationService validationService) {
         this.entityManager = entityManager;
+        this.validationService = validationService;
     }
 
     @Override
-    public String getAllVotes(long longPostId) {
+    public AllPostVotesDTO getAllVotes(String postId, String link) throws AppException {
+        validationService.idValidation(postId, link);
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Vote> query = cb.createQuery(Vote.class);
         Root<Vote> e = query.from(Vote.class);
-        query.where(cb.equal(e.get("post"), longPostId));
+        query.where(cb.equal(e.get("post"), Long.parseLong(postId)));
         List<Vote> votesList = entityManager.createQuery(query).getResultList();
         Map<String, Long> voteCollectionByPostId = votesList.stream()
                 .collect(Collectors.toMap(x -> x.getUpVotes() == 1 ? "upVotes" : "downVotes", n -> 1L, Long::sum));
-        JSONObject jsonObject = new JSONObject();
-        try {
-            jsonObject.put("upVotes", voteCollectionByPostId.get("upVotes"));
-            jsonObject.put("downVotes", voteCollectionByPostId.get("downVotes"));
-        }
-        catch (JSONException ex) {
-            ex.printStackTrace();
-        }
-        return jsonObject.toString();
+        return new AllPostVotesDTO(voteCollectionByPostId);
     }
 
     @Override
     @Transactional
-    public String save(long longPostId, long longUserId, String vote) {
+    public Vote save(String postId, String userId, String vote, String link) throws AppException {
+        validationService.idValidation(postId, link);
+        validationService.idValidation(userId, link);
+        long longUserId = Long.parseLong(userId);
+        long longPostId = Long.parseLong(postId);
         User user = entityManager.find(User.class, longUserId);
         Post post = entityManager.find(Post.class, longPostId);
         Vote newVote = null;
         if (user != null && post != null &&
                 (vote.equals("upVote") || vote.equals("downVote"))) {
-            if (findVoteByUserAndPostId(longPostId, longUserId) == null) {
+            if (findVoteByUserAndPostId(longPostId, longUserId, link) == null) {
                 newVote = new Vote();
                 newVote.setUpVotes(vote.equals("upVote") ? 1 : 0);
                 newVote.setDownVotes(vote.equals("downVote") ? 1 : 0);
@@ -59,33 +61,21 @@ public class VoteServiceImpl implements VoteService {
                 entityManager.persist(newVote);
             }
         }
-        String result;
-        try {
-            result = makeVoteJson(newVote).toString();
-        }
-        catch (JSONException e) {
-            e.printStackTrace();
-            result = "JSONException";
-        }
-        return result;
-    }
-
-    private JSONObject makeVoteJson(Vote vote) throws JSONException {
-        JSONObject voteJSON = new JSONObject();
-        if (vote != null) {
-            voteJSON.put("id", vote.getId());
-            voteJSON.put("upVote", vote.getUpVotes());
-            voteJSON.put("downVote", vote.getDownVotes());
-        }
-        return voteJSON;
+        return newVote;
     }
 
     @Transactional
-    private Vote findVoteByUserAndPostId(long longPostId, long longUserId) {
+    private Vote findVoteByUserAndPostId(long longPostId, long longUserId, String link) throws AppException {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Vote> query = cb.createQuery(Vote.class);
         Root<Vote> root = query.from(Vote.class);
         query.where(getFinalPredForVoteByUserAndPostId(cb, root, longPostId, longUserId));
+//        Vote vote = entityManager.createQuery(query).getResultList().stream().findFirst().orElse(null);
+//        if (vote == null) {
+//            throw new AppException(400, "AppException",
+//                    "No vote with user id " + longUserId + " and post id " + longPostId, link);
+//
+//        }
         return entityManager.createQuery(query).getResultList().stream().findFirst().orElse(null);
     }
 
@@ -99,28 +89,32 @@ public class VoteServiceImpl implements VoteService {
 
     @Override
     @Transactional
-    public void removeVoteById(long longPostId, long longUserId) {
+    public void removeVoteById(String postId, String userId, String link) throws AppException {
+        validationService.idValidation(postId, link);
+        validationService.idValidation(userId, link);
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
         CriteriaDelete<Vote> delete = criteriaBuilder.
                 createCriteriaDelete(Vote.class);
         Root<Vote> root = delete.from(Vote.class);
-        delete.where(getFinalPredForVoteByUserAndPostId(criteriaBuilder, root, longPostId, longUserId));
-        entityManager.createQuery(delete).executeUpdate();
+        delete.where(getFinalPredForVoteByUserAndPostId(criteriaBuilder, root, Long.parseLong(postId), Long.parseLong(userId)));
+        if (entityManager.createQuery(delete).executeUpdate() == 0) {
+            throw new AppException(400, "AppException",
+                    "No vote with user id " + userId + " and post id " + postId, link);
+        }
     }
 
     @Override
     @Transactional
-    public String changeVoteByUserAndPostId(long longPostID, long longUserId, String vote) {
-        Vote voteByUserAndPostId = findVoteByUserAndPostId(longPostID, longUserId);
+    public Vote changeVoteByUserAndPostId(String postId, String userId, String vote, String link) throws AppException {
+        validationService.idValidation(postId, link);
+        validationService.idValidation(userId, link);
+        Vote voteByUserAndPostId = findVoteByUserAndPostId(Long.parseLong(postId), Long.parseLong(userId), link);
+        if (voteByUserAndPostId == null) {
+            throw new AppException(400, "AppException",
+                    "No vote with user id " + userId + " and post id " + postId, link);
+        }
         voteByUserAndPostId.setUpVotes(vote.equals("upVote") ? 1 : 0);
         voteByUserAndPostId.setDownVotes(vote.equals("downVote") ? 1 : 0);
-        String result = null;
-        try {
-            result = makeVoteJson(voteByUserAndPostId).toString();
-        }
-        catch (JSONException e) {
-            e.printStackTrace();
-        }
-        return result;
+        return voteByUserAndPostId;
     }
 }

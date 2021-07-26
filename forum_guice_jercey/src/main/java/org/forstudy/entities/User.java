@@ -1,5 +1,7 @@
 package org.forstudy.entities;
 
+import org.codehaus.jackson.annotate.JsonIgnore;
+import org.forstudy.converter.MyJSONIgnore;
 import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
@@ -24,11 +26,11 @@ public class User {
     private LocalDateTime registrationDate;
 
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-
+    @JsonIgnore
     private Set<Post> posts;
 
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-
+@JsonIgnore
     private Set<Topic> topics;
 
 
@@ -36,11 +38,11 @@ public class User {
     @JoinTable(name = "users_group",
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "group_id"))
-
+    @JsonIgnore
     private Set<Group> groups;
 
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-
+    @JsonIgnore
     private Set<Vote> votes;
 
     public long getId() {

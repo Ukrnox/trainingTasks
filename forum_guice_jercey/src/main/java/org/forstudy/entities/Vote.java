@@ -1,5 +1,6 @@
 package org.forstudy.entities;
 
+import org.codehaus.jackson.annotate.JsonIgnore;
 import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
@@ -23,11 +24,12 @@ public class Vote {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id")
-
+    @JsonIgnore
     private Post post;
 
     @ManyToOne
     @JoinColumn(name = "user_id")
+    @JsonIgnore
     private User author;
 
     public long getId() {
