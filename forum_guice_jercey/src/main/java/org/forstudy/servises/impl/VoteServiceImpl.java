@@ -1,12 +1,11 @@
 package org.forstudy.servises.impl;
 
 import com.google.inject.persist.Transactional;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
 import org.forstudy.dto.AllPostVotesDTO;
-import org.forstudy.entities.*;
+import org.forstudy.entities.Post;
+import org.forstudy.entities.User;
+import org.forstudy.entities.Vote;
 import org.forstudy.exceptionhandling.AppException;
-import org.forstudy.servises.ValidationService;
 import org.forstudy.servises.VoteService;
 
 import javax.inject.Inject;
@@ -14,22 +13,20 @@ import javax.persistence.EntityManager;
 import javax.persistence.criteria.*;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class VoteServiceImpl implements VoteService {
 
     private final EntityManager entityManager;
-    private final ValidationService validationService;
 
     @Inject
-    public VoteServiceImpl(EntityManager entityManager, ValidationService validationService) {
+    public VoteServiceImpl(EntityManager entityManager) {
         this.entityManager = entityManager;
-        this.validationService = validationService;
     }
 
     @Override
     public AllPostVotesDTO getAllVotes(String postId, String link) throws AppException {
-        validationService.idValidation(postId, link);
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Vote> query = cb.createQuery(Vote.class);
         Root<Vote> e = query.from(Vote.class);
@@ -43,8 +40,6 @@ public class VoteServiceImpl implements VoteService {
     @Override
     @Transactional
     public Vote save(String postId, String userId, String vote, String link) throws AppException {
-        validationService.idValidation(postId, link);
-        validationService.idValidation(userId, link);
         long longUserId = Long.parseLong(userId);
         long longPostId = Long.parseLong(postId);
         User user = entityManager.find(User.class, longUserId);
@@ -52,7 +47,7 @@ public class VoteServiceImpl implements VoteService {
         Vote newVote = null;
         if (user != null && post != null &&
                 (vote.equals("upVote") || vote.equals("downVote"))) {
-            if (findVoteByUserAndPostId(longPostId, longUserId, link) == null) {
+            if (!findVoteByUserAndPostId(longPostId, longUserId, link).isPresent()) {
                 newVote = new Vote();
                 newVote.setUpVotes(vote.equals("upVote") ? 1 : 0);
                 newVote.setDownVotes(vote.equals("downVote") ? 1 : 0);
@@ -65,18 +60,12 @@ public class VoteServiceImpl implements VoteService {
     }
 
     @Transactional
-    private Vote findVoteByUserAndPostId(long longPostId, long longUserId, String link) throws AppException {
+    private Optional<Vote> findVoteByUserAndPostId(long longPostId, long longUserId, String link) throws AppException {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Vote> query = cb.createQuery(Vote.class);
         Root<Vote> root = query.from(Vote.class);
         query.where(getFinalPredForVoteByUserAndPostId(cb, root, longPostId, longUserId));
-//        Vote vote = entityManager.createQuery(query).getResultList().stream().findFirst().orElse(null);
-//        if (vote == null) {
-//            throw new AppException(400, "AppException",
-//                    "No vote with user id " + longUserId + " and post id " + longPostId, link);
-//
-//        }
-        return entityManager.createQuery(query).getResultList().stream().findFirst().orElse(null);
+        return entityManager.createQuery(query).getResultList().stream().findFirst();
     }
 
     private Predicate getFinalPredForVoteByUserAndPostId(CriteriaBuilder cb, Root<Vote> root, long longPostId, long longUserId) {
@@ -90,8 +79,6 @@ public class VoteServiceImpl implements VoteService {
     @Override
     @Transactional
     public void removeVoteById(String postId, String userId, String link) throws AppException {
-        validationService.idValidation(postId, link);
-        validationService.idValidation(userId, link);
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
         CriteriaDelete<Vote> delete = criteriaBuilder.
                 createCriteriaDelete(Vote.class);
@@ -106,15 +93,12 @@ public class VoteServiceImpl implements VoteService {
     @Override
     @Transactional
     public Vote changeVoteByUserAndPostId(String postId, String userId, String vote, String link) throws AppException {
-        validationService.idValidation(postId, link);
-        validationService.idValidation(userId, link);
-        Vote voteByUserAndPostId = findVoteByUserAndPostId(Long.parseLong(postId), Long.parseLong(userId), link);
-        if (voteByUserAndPostId == null) {
-            throw new AppException(400, "AppException",
-                    "No vote with user id " + userId + " and post id " + postId, link);
-        }
-        voteByUserAndPostId.setUpVotes(vote.equals("upVote") ? 1 : 0);
-        voteByUserAndPostId.setDownVotes(vote.equals("downVote") ? 1 : 0);
-        return voteByUserAndPostId;
+        Optional<Vote> optionalVote = findVoteByUserAndPostId(Long.parseLong(postId), Long.parseLong(userId), link);
+        return optionalVote.map(vote1 -> {
+            vote1.setUpVotes(vote.equals("upVote") ? 1 : 0);
+            vote1.setDownVotes(vote.equals("downVote") ? 1 : 0);
+            return vote1;
+        }).orElseThrow(() -> new AppException(400, "AppException",
+                "No vote with user id " + userId + " and post id " + postId, link));
     }
 }

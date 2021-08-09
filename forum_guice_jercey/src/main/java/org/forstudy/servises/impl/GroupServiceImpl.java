@@ -4,7 +4,6 @@ import com.google.inject.persist.Transactional;
 import org.forstudy.entities.Group;
 import org.forstudy.exceptionhandling.AppException;
 import org.forstudy.servises.GroupService;
-import org.forstudy.servises.ValidationService;
 
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
@@ -16,12 +15,10 @@ import java.util.List;
 public class GroupServiceImpl implements GroupService {
 
     private final EntityManager entityManager;
-    private final ValidationService validationService;
 
     @Inject
-    public GroupServiceImpl(EntityManager entityManager, ValidationService validationService) {
+    public GroupServiceImpl(EntityManager entityManager) {
         this.entityManager = entityManager;
-        this.validationService = validationService;
     }
 
     @Override
@@ -32,7 +29,6 @@ public class GroupServiceImpl implements GroupService {
 
     @Override
     public Group findById(String groupId, String link) throws AppException {
-        validationService.idValidation(groupId, link);
         Group group = entityManager.find(Group.class, Long.parseLong(groupId));
         if (group == null) {
             throw new AppException(400, "AppException",
@@ -53,7 +49,6 @@ public class GroupServiceImpl implements GroupService {
     @Override
     @Transactional
     public Group updateGroupTitle(String groupId, String newGroupTitle, String link) throws AppException {
-        validationService.idValidation(groupId, link);
         Group group = entityManager.find(Group.class, Long.parseLong(groupId));
         if (group == null) {
             throw new AppException(400, "AppException",
@@ -66,7 +61,6 @@ public class GroupServiceImpl implements GroupService {
     @Override
     @Transactional
     public void deleteGroupById(String groupId, String link) throws AppException {
-        validationService.idValidation(groupId, link);
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
         CriteriaDelete<Group> delete = criteriaBuilder.
                 createCriteriaDelete(Group.class);

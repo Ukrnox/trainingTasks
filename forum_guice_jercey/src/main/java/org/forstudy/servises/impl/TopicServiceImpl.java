@@ -17,18 +17,15 @@ import java.util.List;
 public class TopicServiceImpl implements TopicService {
 
     private final EntityManager entityManager;
-    private final ValidationService validationService;
 
     @Inject
-    public TopicServiceImpl(EntityManager entityManager, ValidationService validationService) {
+    public TopicServiceImpl(EntityManager entityManager) {
         this.entityManager = entityManager;
-        this.validationService = validationService;
     }
 
     @Override
     @Transactional
-    public List<Topic> findTopicsByGroupId(String groupId, String link) throws AppException {
-        validationService.idValidation(groupId, link);
+    public List<Topic> findTopicsByGroupId(String groupId, String link) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Topic> query = cb.createQuery(Topic.class);
         Root<Topic> e = query.from(Topic.class);
@@ -39,8 +36,8 @@ public class TopicServiceImpl implements TopicService {
 
     @Override
     public Topic findById(String topicId, String link) throws AppException {
-        validationService.idValidation(topicId, link);
-        Topic topic = entityManager.find(Topic.class, topicId);
+
+        Topic topic = entityManager.find(Topic.class, Long.parseLong(topicId));
         if (topic == null) {
             throw new AppException(400, "AppException",
                     "No topic with ID " + topicId, link + topicId);
@@ -51,7 +48,6 @@ public class TopicServiceImpl implements TopicService {
     @Override
     @Transactional
     public Topic save(String groupId, String userId, Topic topic, String link) throws AppException {
-        validationService.idValidation(groupId + userId, link);
         User user = entityManager.find(User.class, Long.parseLong(userId));
         Group group = entityManager.find(Group.class, Long.parseLong(groupId));
         Topic newTopic;
@@ -73,8 +69,6 @@ public class TopicServiceImpl implements TopicService {
     @Override
     @Transactional
     public Topic changeTopicTitle(String topicId, Topic newTopic, String link) throws AppException {
-        validationService.idValidation(topicId, link);
-        validationService.topicValidation(newTopic, link);
         Topic topic = entityManager.find(Topic.class, Long.parseLong(topicId));
         if (topic != null) {
             topic.setTitle(newTopic.getTitle());
@@ -89,7 +83,6 @@ public class TopicServiceImpl implements TopicService {
     @Override
     @Transactional
     public void removeTopicById(String topicId, String link) throws AppException {
-        validationService.idValidation(topicId, link);
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
         CriteriaDelete<Topic> delete = criteriaBuilder.
                 createCriteriaDelete(Topic.class);

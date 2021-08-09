@@ -6,7 +6,6 @@ import org.forstudy.entities.Topic;
 import org.forstudy.entities.User;
 import org.forstudy.exceptionhandling.AppException;
 import org.forstudy.servises.PostService;
-import org.forstudy.servises.ValidationService;
 
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
@@ -20,17 +19,14 @@ import java.util.List;
 public class PostServiceImpl implements PostService {
 
     private final EntityManager entityManager;
-    private final ValidationService validationService;
 
     @Inject
-    public PostServiceImpl(EntityManager entityManager, ValidationService validationService) {
+    public PostServiceImpl(EntityManager entityManager) {
         this.entityManager = entityManager;
-        this.validationService = validationService;
     }
 
     @Override
     public List<Post> findPostsByTopicId(String topicId, String link) throws AppException {
-        validationService.idValidation(topicId, link);
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Post> query = cb.createQuery(Post.class);
         Root<Post> e = query.from(Post.class);
@@ -40,7 +36,6 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public Post findPostById(String postId, String link) throws AppException {
-        validationService.idValidation(postId, link);
         Post post = entityManager.find(Post.class, Long.parseLong(postId));
         if (post == null) {
             throw new AppException(400, "AppException",
@@ -52,8 +47,6 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional
     public Post save(String userId, String topicId, Post newPost, String link) throws AppException {
-        validationService.idValidation(userId + topicId, link);
-        validationService.postValidation(newPost, link);
         User user = entityManager.find(User.class, Long.parseLong(userId));
         Topic topic = entityManager.find(Topic.class, Long.parseLong(topicId));
         Post newPostCreator;
@@ -75,7 +68,6 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional
     public Post updatePostById(String postId, Post newPost, String link) throws AppException {
-        validationService.idValidation(postId, link);
         Post post = entityManager.find(Post.class, Long.parseLong(postId));
         if (post != null) {
             post.setText(newPost.getText());
@@ -90,7 +82,6 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional
     public void removePostById(String postId, String link) throws AppException {
-        validationService.idValidation(postId, link);
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
         CriteriaDelete<Post> delete = criteriaBuilder.
                 createCriteriaDelete(Post.class);

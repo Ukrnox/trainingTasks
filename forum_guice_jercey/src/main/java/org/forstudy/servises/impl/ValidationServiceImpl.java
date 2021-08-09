@@ -2,7 +2,6 @@ package org.forstudy.servises.impl;
 
 import com.google.inject.Inject;
 import com.google.inject.persist.Transactional;
-import org.forstudy.entities.Group;
 import org.forstudy.entities.Post;
 import org.forstudy.entities.Topic;
 import org.forstudy.entities.User;
@@ -68,14 +67,5 @@ public class ValidationServiceImpl implements ValidationService {
             throw new ValidationException(400, e.getClass().getSimpleName() + " " + e.getMessage(),
                     "Wrong id format", link);
         }
-    }
-
-    public boolean groupValidation(Group group) {
-        boolean result = true;
-        if (group.getName() == null ||
-                group.getName().isEmpty()) {
-            result = false;
-        }
-        return result;
     }
 }

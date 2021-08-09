@@ -5,7 +5,6 @@ import com.google.inject.persist.Transactional;
 import org.forstudy.entities.User;
 import org.forstudy.exceptionhandling.AppException;
 import org.forstudy.servises.UserService;
-import org.forstudy.servises.ValidationService;
 
 import javax.persistence.EntityManager;
 import javax.persistence.criteria.CriteriaBuilder;
@@ -17,12 +16,10 @@ import java.util.List;
 public class UserServiceImpl implements UserService {
 
     private final EntityManager entityManager;
-    private final ValidationService validationService;
 
     @Inject
-    public UserServiceImpl(EntityManager entityManager, ValidationService validationService) {
+    public UserServiceImpl(EntityManager entityManager) {
         this.entityManager = entityManager;
-        this.validationService = validationService;
     }
 
     @Override
@@ -32,7 +29,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User findUserById(String userId, String link) throws AppException {
-        validationService.idValidation(userId, link);
         User user = entityManager.find(User.class, Long.parseLong(userId));
         if (user == null) {
             throw new AppException(400, "AppException",
@@ -44,9 +40,6 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public User updateUserById(String userId, User userFromJSON, String link) throws AppException {
-        validationService.idValidation(userId, link);
-        validationService.userLoginAndPasswordValidation(userFromJSON, link);
-        validationService.checkLogin(userFromJSON.getLogin(), link);
         User user = entityManager.find(User.class, Long.parseLong(userId));
         if (user != null) {
             user.setLogin(userFromJSON.getLogin());
@@ -58,8 +51,6 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public User save(User userFromJSON, String link) throws AppException {
-        validationService.userLoginAndPasswordValidation(userFromJSON, link);
-        validationService.checkLogin(userFromJSON.getLogin(), link);
         User newUserCreator = new User();
         newUserCreator.setLogin(userFromJSON.getLogin());
         newUserCreator.setPassword(userFromJSON.getPassword());
@@ -71,7 +62,6 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void deleteUserById(String userId, String link) throws AppException {
-        validationService.idValidation(userId, link);
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
         CriteriaDelete<User> delete = criteriaBuilder.
                 createCriteriaDelete(User.class);
